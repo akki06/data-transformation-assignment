@@ -1,0 +1,39 @@
+import pandas as pd
+from datetime import datetime
+def to_int(value):
+    try:
+        return int(float(value))
+    except:
+        return 0
+def to_float(value):
+    try:
+        return float(value)
+    except:
+        return 0.0
+def to_date(value):
+    date_formats = ["%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y"]
+    for fmt in date_formats:
+        try:
+            return pd.to_datetime(value, format=fmt)
+        except:
+            continue
+    return pd.NaT
+
+
+def clean_negative_values(df, column_name):
+    df[column_name] = pd.to_numeric(df[column_name], errors='coerce')
+    df[column_name] = df[column_name].apply(lambda x: abs(x) if pd.notnull(x) else x)
+    return df
+def calculate_total_price(row):
+    return row['quantity'] * row['price_per_unit']
+
+df = pd.read_csv(r"C:\Users\HP\Downloads\raw_sales.csv")
+
+df['order_id'] = df['order_id'].apply(to_int)
+df['product_id'] = df['product_id'].apply(to_int)
+df['quantity'] = df['quantity'].apply(to_int)
+df['price_per_unit'] = df['price_per_unit'].apply(to_float)
+df['order_date'] = df['order_date'].apply(to_date)
+df = clean_negative_values(df, 'quantity')
+df['total_price'] = df.apply(calculate_total_price, axis=1)
+df.to_csv("cleaned_sales.csv", index=False)
