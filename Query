@@ -1,0 +1,45 @@
+import pandas as pd
+import duckdb
+df_day1 = pd.read_csv(r"C:\Users\HP\Downloads\products_day1.csv")
+df_day1
+df_day2 = pd.read_csv(r"C:\Users\HP\Downloads\products_day2.csv")
+df_day2
+duckdb.register("products_day1", df_day1)
+duckdb.register("products_day2", df_day2)
+added = duckdb.query("""
+    SELECT *, 'ADDED' AS change_type
+    FROM products_day2
+    EXCEPT
+    SELECT *, 'ADDED' AS change_type
+    FROM products_day1
+""").to_df()
+removed = duckdb.query("""
+    SELECT *, 'REMOVED' AS change_type
+    FROM products_day1
+    EXCEPT
+    SELECT *, 'REMOVED' AS change_type
+    FROM products_day2
+""").to_df()
+full_row_changes = pd.concat([added, removed]).reset_index(drop=True)
+full_row_changes
+columns_to_compare = ['name', 'category', 'price', 'stock']
+column_diffs = []
+
+for col in columns_to_compare:
+    query = f"""
+    SELECT 
+        d1.product_id,
+        '{col}' AS column_changed,
+        CAST(d1.{col} AS VARCHAR) AS old_value,
+        CAST(d2.{col} AS VARCHAR) AS new_value
+    FROM products_day1 d1
+    JOIN products_day2 d2 
+        ON d1.product_id = d2.product_id
+    WHERE d1.{col} IS NOT NULL AND d2.{col} IS NOT NULL 
+      AND d1.{col} != d2.{col}
+    """
+    df_diff = duckdb.query(query).to_df()
+    column_diffs.append(df_diff)
+
+column_level_changes = pd.concat(column_diffs).reset_index(drop=True)
+column_level_changes
