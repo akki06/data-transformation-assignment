@@ -1,0 +1,4 @@
+product_id,column_changed,old_value,new_value
+101,price,25.99,23.99
+105,price,35.0,37.0
+102,stock,200,180
